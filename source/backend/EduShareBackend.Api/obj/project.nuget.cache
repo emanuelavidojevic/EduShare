@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "LPM9R5cmKsA=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\sep2022\\Desktop\\EduShare\\ShareEdu\\source\\backend\\EduShareBackend.Api\\EduShareBackend.Api.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\sep2022\\.nuget\\packages\\microsoft.aspnetcore.openapi\\10.0.1\\microsoft.aspnetcore.openapi.10.0.1.nupkg.sha512",
+    "C:\\Users\\sep2022\\.nuget\\packages\\microsoft.openapi\\2.0.0\\microsoft.openapi.2.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
