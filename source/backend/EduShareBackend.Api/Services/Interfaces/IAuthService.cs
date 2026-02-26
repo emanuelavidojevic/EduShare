@@ -1,4 +1,5 @@
 using EduShareBackend.Api.Models;
+using EduShareBackend.Api.Models.Entities;
 
 namespace EduShareBackend.Api.Services.Interfaces
 {
@@ -8,5 +9,6 @@ namespace EduShareBackend.Api.Services.Interfaces
         Task<TokenDTO> LoginAsync(UserLoginDTO loginDto);
         Task<TokenDTO> RefreshAccessTokenAsync(string refreshToken);
         void ClearCookies();
+        Task<object> GetCurrentUserAsync();
     }
 }

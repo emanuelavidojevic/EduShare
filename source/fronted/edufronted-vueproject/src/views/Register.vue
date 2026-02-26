@@ -15,7 +15,9 @@
           <div class="card register-card shadow-lg border-0">
             <div class="card-body p-5">
               <div class="text-center mb-5">
-                <h1 class="fw-bold text-primary display-5 mb-1">EduShare</h1>
+                <h1 class="fw-bold text-primary display-5 mb-1">
+    <i class="bi bi-mortarboard-fill me-2"></i>EduShare
+  </h1>
                 <p class="text-muted">Postani deo zajednice i deli znanje</p>
               </div>
               

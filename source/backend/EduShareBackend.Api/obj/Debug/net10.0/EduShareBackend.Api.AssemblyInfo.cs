@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("EduShareBackend.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8bdccace6baa9dd1b4c06dcb48943c63f55ee9ca")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ee388935de1e686e7100598e5996f829cb1bb8a6")]
 [assembly: System.Reflection.AssemblyProductAttribute("EduShareBackend.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("EduShareBackend.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

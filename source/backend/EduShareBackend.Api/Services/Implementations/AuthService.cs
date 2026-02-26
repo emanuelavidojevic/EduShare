@@ -81,9 +81,9 @@ namespace EduShareBackend.Api.Services.Implementations
 
         private async Task<TokenDTO> PrepareAuthResponse(Users user)
         {
-            var expiry = DateTime.UtcNow.AddMinutes(30);
+            var expiry = DateTime.UtcNow.AddMinutes(1);
             var token = CreateJwtToken(user, expiry);
-            SetTokenCookie("accessToken", token, 30);
+            SetTokenCookie("accessToken", token, 1);
 
             return new TokenDTO { Expiry = expiry };
         }
@@ -126,5 +126,33 @@ namespace EduShareBackend.Api.Services.Implementations
                 Expires = DateTime.UtcNow.AddMinutes(minutes)
             });
         }
+   public async Task<object> GetCurrentUserAsync()
+{
+    var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    if (string.IsNullOrEmpty(userIdClaim)) return null;
+
+    var id = int.Parse(userIdClaim);
+    var user = await _context.Users
+        .Include(u => u.Department)
+        .FirstOrDefaultAsync(u => u.UserId == id);
+
+    if (user == null) return null;
+
+    var roleName = await _context.UserRoles
+        .Where(ur => ur.UserId == id)
+        .Include(ur => ur.Role)
+        .Select(ur => ur.Role.RoleName)
+        .FirstOrDefaultAsync();
+
+    return new 
+    {
+        userId = user.UserId,
+        firstName = user.FirstName,
+        lastName = user.LastName,
+        email = user.Email,
+        role = roleName ?? "Student",
+        departmentName = user.Department?.DepartmentName ?? "Nema smera"
+    };
+}
     }
 }

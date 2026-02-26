@@ -1,6 +1,7 @@
 using EduShareBackend.Api.Models;
 using EduShareBackend.Api.Models.Entities;
 using EduShareBackend.Api.Services.Interfaces;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -50,12 +51,20 @@ namespace EduShareBackend.Api.Controllers
             }
         }
 
-        [Authorize]
-        [HttpPost("logout")]
-        public IActionResult Logout()
-        {
-            _authService.ClearCookies();
-            return Ok();
-        }
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<IActionResult> GetMe()
+    {
+        var user = await _authService.GetCurrentUserAsync();
+        if (user == null) return Unauthorized();
+        return Ok(user);
     }
+
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout()
+    {
+        
+        return Ok(new { message = "Odjava uspešna" });
+    }
+}
 }

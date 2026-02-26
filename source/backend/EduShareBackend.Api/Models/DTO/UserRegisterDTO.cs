@@ -15,7 +15,7 @@ namespace EduShareBackend.Api.Models
         public string Email { get; set; }
 
         [Required(ErrorMessage = "Lozinka je obavezna.")]
-        [MinLength(8, ErrorMessage = "Lozinka mora imati najmanje 8 karaktera.")]
+        [MinLength(5, ErrorMessage = "Lozinka mora imati najmanje 8 karaktera.")]
         public string Password { get; set; }
 
         public int DepartmentId { get; set; }

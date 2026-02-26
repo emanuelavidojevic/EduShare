@@ -93,6 +93,8 @@ const goToSubject = (id) => {
 const deleteSubject = (name) => {
   alert(`Da li ste sigurni da želite da obrišete predmet: ${name}?`);
 };
+const goBack = () => 
+  router.back();
 </script>
 
 <style scoped>

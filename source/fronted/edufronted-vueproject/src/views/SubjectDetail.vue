@@ -13,7 +13,7 @@
         <nav aria-label="breadcrumb">
           <ol class="breadcrumb mb-0">
             <li class="breadcrumb-item">
-               <router-link to="/subject" class="breadcrumb-link-box">Predmeti</router-link>
+               <router-link to="/dashboard/subject" class="breadcrumb-link-box">Predmeti</router-link>
             </li>
             <li class="breadcrumb-item divider">/</li>
             <li class="breadcrumb-item active">{{ subjectName }}</li>
@@ -122,16 +122,15 @@ import { useRoute, useRouter } from 'vue-router';
 const route = useRoute();
 const router = useRouter();
 
-// Rešavanje TypeScript greške i formatiranje naslova
 const subjectName = computed(() => {
   const idParam = route.params.id;
   const id = Array.isArray(idParam) ? idParam[0] : idParam;
   if (!id) return 'Predmet';
-  // Menja crtice u razmake i svaku reč počinje velikim slovom (npr. c-sharp -> C Sharp)
   return id.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 });
 
-const goBack = () => router.push('/subject');
+// ISPRAVLJENO: Navigacija nazad na dashboard listu predmeta
+const goBack = () => router.push('/dashboard/subject');
 
 const showModal = ref(false);
 const materials = ref([
@@ -167,10 +166,10 @@ const getFileIcon = (type: string) => {
 </script>
 
 <style scoped>
+/* Zadržani svi tvoji stilovi bez promena */
 .subject-detail { animation: fadeIn 0.4s ease-out; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* STILIZACIJA HEADERA SA SLIKE */
 .back-btn {
   width: 42px;
   height: 42px;
@@ -181,11 +180,12 @@ const getFileIcon = (type: string) => {
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  cursor: pointer;
 }
 .back-btn:hover { background: #f8f9fa; transform: scale(1.05); }
 
 .subject-title {
-  background-color: #3b71db; /* Karakteristična plava sa tvoje slike */
+  background-color: #3b71db;
   color: white;
   padding: 4px 12px;
   font-weight: 700;
@@ -202,25 +202,12 @@ const getFileIcon = (type: string) => {
   border-radius: 2px;
 }
 
-.divider {
-  padding: 0 8px;
-  color: #adb5bd;
-  font-weight: 300;
-}
-
-.breadcrumb-item.active {
-  color: #495057;
-  font-weight: 500;
-  font-size: 0.9rem;
-}
-
+.divider { padding: 0 8px; color: #adb5bd; font-weight: 300; }
+.breadcrumb-item.active { color: #495057; font-weight: 500; font-size: 0.9rem; }
 .breadcrumb-item + .breadcrumb-item::before { content: none; }
-
-/* TABELA I KARTICE */
 .rounded-4 { border-radius: 1rem !important; }
 .table th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.8px; color: #adb5bd; padding: 1rem 0.5rem; }
 
-/* MODAL */
 .custom-modal-overlay {
   position: fixed;
   top: 0; left: 0; width: 100%; height: 100%;

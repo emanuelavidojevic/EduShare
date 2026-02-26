@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using EduShareBackend.Api.Services.Interfaces;
 using EduShareBackend.Api.Models;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System;
 using Microsoft.AspNetCore.Authorization;
+using System.Threading.Tasks;
 
 namespace EduShareBackend.Api.Controllers
 {
@@ -51,18 +49,13 @@ namespace EduShareBackend.Api.Controllers
             var deleted = await _materialService.DeleteMaterialAsync(id);
             return deleted ? Ok("Obrisano.") : NotFound();
         }
-        [HttpGet("user-stats/{userId}")]
-    public async Task<IActionResult> GetStats(int userId)
-    {
-        var stats = await _materialService.GetUserMaterialStats(userId);
-        return Ok(stats);
-    }
 
-    [HttpGet("user-images/{userId}")]
-    public async Task<IActionResult> GetImages(int userId)
-    {
-        var images = await _materialService.GetUserImagesAsync(userId);
-        return Ok(images);
-    }
+        [HttpGet("dashboard-stats/{userId}")]
+        public async Task<IActionResult> GetDashboardStats(int userId)
+        {
+            var stats = await _materialService.GetProfileChartData(userId);
+            if (stats == null) return NotFound("Nema podataka za ovog korisnika.");
+            return Ok(stats);
+        }
     }
 }

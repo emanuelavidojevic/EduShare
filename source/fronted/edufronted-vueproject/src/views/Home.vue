@@ -1,9 +1,8 @@
 <template>
   <div class="container-fluid py-2">
-    
     <div class="d-flex align-items-center mb-4 pt-3">
       <div class="position-relative me-3">
-        <img src="https://ui-avatars.com/api/?name=Milica+User&background=0d6efd&color=fff" 
+        <img :src="`https://ui-avatars.com/api/?name=${userName || 'U'}+${userLastName || 'U'}&background=0d6efd&color=fff`" 
              alt="User Logo" 
              class="rounded-circle shadow-sm" 
              style="width: 65px; height: 65px; border: 3px solid white;">
@@ -12,7 +11,10 @@
         </span>
       </div>
       <div>
-        <h3 class="fw-bold text-dark m-0">Zdravo, Emanuela! 👋</h3>
+        <h3 class="fw-bold text-dark m-0">
+          <span v-if="userName">Zdravo, {{ userName }}! 👋</span>
+          <span v-else>Učitavanje...</span>
+        </h3>
         <p class="text-muted m-0">Lepo je videti te ponovo na EduShare platformi.</p>
       </div>
     </div>
@@ -47,42 +49,6 @@
 
     <h3 class="fw-bold text-dark mb-4">Pregled aktivnosti</h3>
 
-    <div class="row g-4 mb-5">
-      <div class="col-md-4">
-        <div class="card stat-card border-0 shadow-sm bg-primary text-white h-100">
-          <div class="card-body p-4 d-flex align-items-center">
-            <div class="stat-icon-wrapper me-3"><i class="bi bi-code-slash fs-2"></i></div>
-            <div>
-              <h2 class="fw-bold mb-0">32</h2>
-              <p class="mb-0 opacity-75">Code Snippets</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="card stat-card border-0 shadow-sm bg-warning text-white h-100">
-          <div class="card-body p-4 d-flex align-items-center">
-            <div class="stat-icon-wrapper me-3"><i class="bi bi-file-earmark-pdf fs-2"></i></div>
-            <div>
-              <h2 class="fw-bold mb-0">18</h2>
-              <p class="mb-0 opacity-75">PDF Documents</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="card stat-card border-0 shadow-sm bg-success text-white h-100">
-          <div class="card-body p-4 d-flex align-items-center">
-            <div class="stat-icon-wrapper me-3"><i class="bi bi-share fs-2"></i></div>
-            <div>
-              <h2 class="fw-bold mb-0">12</h2>
-              <p class="mb-0 opacity-75">Tutorials Shared</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="card border-0 shadow-sm bg-white rounded-4 overflow-hidden">
       <div class="card-header bg-white border-0 py-3 px-4">
         <h5 class="fw-bold mb-0 text-secondary">Najskorije dodati materijali</h5>
@@ -99,18 +65,38 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in recentMaterials" :key="item.title">
-              <td class="fw-bold text-primary">{{ item.title }}</td>
-              <td><span class="badge bg-light text-dark border">{{ item.type }}</span></td>
-              <td>{{ item.author }}</td>
-              <td class="text-muted">{{ item.date }}</td>
+            <tr v-if="loading">
+              <td colspan="5" class="text-center py-5">
+                <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                Učitavanje materijala...
+              </td>
+            </tr>
+
+            <tr v-for="item in materials" :key="item.materialId">
+              <td class="fw-bold text-primary">{{ item.name }}</td>
+              <td>
+                <span class="badge bg-light text-dark border">
+                  {{ formatType(item.type) }}
+                </span>
+              </td>
+              <td>{{ item.authorName }}</td>
+              <td class="text-muted">{{ formatDate(item.dateCreated) }}</td>
               <td class="text-end">
                 <div class="btn-group">
-                  <button class="btn btn-sm btn-outline-primary border-0"><i class="bi bi-download"></i></button>
-                  <button class="btn btn-sm btn-outline-secondary border-0"><i class="bi bi-pencil"></i></button>
-                  <button class="btn btn-sm btn-outline-danger border-0"><i class="bi bi-trash"></i></button>
+                  <button @click="downloadFile(item.materialId, item.name)" 
+                          class="btn btn-sm btn-outline-primary border-0" title="Preuzmi">
+                    <i class="bi bi-download"></i>
+                  </button>
+                  <button @click="deleteFile(item.materialId)" 
+                          class="btn btn-sm btn-outline-danger border-0" title="Obriši">
+                    <i class="bi bi-trash"></i>
+                  </button>
                 </div>
               </td>
+            </tr>
+
+            <tr v-if="!loading && materials.length === 0">
+              <td colspan="5" class="text-center py-4 text-muted">Nema dostupnih materijala.</td>
             </tr>
           </tbody>
         </table>
@@ -120,64 +106,104 @@
 </template>
 
 <script setup>
-const recentMaterials = [
-  { title: 'JavaScript Async Guide', type: 'Code', author: 'Prof. Marković', date: '15 Feb 2024' },
-  { title: 'Linear Algebra Notes', type: 'PDF', author: 'Dr. Petrović', date: '14 Feb 2024' },
-  { title: 'React Basics Tutorial', type: 'Tutorial', author: 'Ana Student', date: '13 Feb 2024' },
-  { title: 'Python OOP Examples', type: 'Code', author: 'Prof. Ilić', date: '12 Feb 2024' },
-  { title: 'Quantum Mechanics Intro', type: 'PDF', author: 'Dr. Nikolić', date: '11 Feb 2024' }
-];
+import { ref, onMounted } from 'vue';
+import axios from 'axios';
+
+const userName = ref('');
+const userLastName = ref('');
+const materials = ref([]);
+const loading = ref(true);
+
+const fetchUserSession = async () => {
+  try {
+    const res = await axios.get('http://localhost:5145/api/Auth/me', { withCredentials: true });
+    if (res.data) {
+      userName.value = res.data.firstName;
+      userLastName.value = res.data.lastName;
+    }
+  } catch (e) {
+    console.error("Korisnik nije prijavljen");
+  }
+};
+
+const fetchMaterials = async () => {
+  try {
+    loading.value = true;
+    // PROMENJENO: Izbačeno 'all-materials' jer kontroler koristi samo osnovnu rutu
+    const res = await axios.get('http://localhost:5145/api/Material', { withCredentials: true });
+    materials.value = res.data; 
+  } catch (e) {
+    console.error("Greška pri učitavanju materijala:", e);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const downloadFile = async (id, fileName) => {
+  try {
+    const response = await axios({
+      url: `http://localhost:5145/api/Material/download/${id}`,
+      method: 'GET',
+      responseType: 'blob',
+      withCredentials: true
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } catch (e) {
+    alert("Fajl se ne može preuzeti.");
+  }
+};
+
+const deleteFile = async (id) => {
+  if (!confirm("Da li želite da obrišete ovaj materijal?")) return;
+  try {
+    await axios.delete(`http://localhost:5145/api/Material/${id}`, { withCredentials: true });
+    fetchMaterials(); // Ponovo učitaj listu
+  } catch (e) {
+    alert("Greška pri brisanju.");
+  }
+};
+
+const formatDate = (dateString) => {
+  if (!dateString) return "-";
+  return new Date(dateString).toLocaleDateString('sr-RS', {
+    day: '2-digit', month: '2-digit', year: 'numeric'
+  });
+};
+
+const formatType = (type) => {
+  const types = { 0: 'Others', 1: 'Pdf', 2: 'Video', 3: 'Image', 4: 'Document' };
+  return types[type] || 'Others';
+};
+
+onMounted(async () => {
+  await fetchUserSession();
+  await fetchMaterials();
+});
 </script>
 
 <style scoped>
-/* Pozdrav i Status */
 .bg-success { background-color: #198754 !important; }
-
-/* Timeline Stilovi */
-.timeline-wrapper {
-  overflow-x: auto;
-  scrollbar-width: none; /* Firefox */
-  padding-bottom: 10px;
+.timeline-wrapper { overflow-x: auto; scrollbar-width: none; padding-bottom: 10px; }
+.timeline-wrapper::-webkit-scrollbar { display: none; }
+.timeline-scroll { display: flex; gap: 1.2rem; }
+.timeline-card { 
+  min-width: 250px; 
+  background: white; 
+  padding: 1.2rem; 
+  border-radius: 14px; 
+  box-shadow: 0 4px 10px rgba(0,0,0,0.03); 
+  border-top: 4px solid #dee2e6; 
 }
-.timeline-wrapper::-webkit-scrollbar { display: none; } /* Chrome/Safari */
-
-.timeline-scroll {
-  display: flex;
-  gap: 1.2rem;
-}
-
-.timeline-card {
-  min-width: 250px;
-  background: white;
-  padding: 1.2rem;
-  border-radius: 14px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.03);
-  border-top: 4px solid #dee2e6;
-}
-
 .timeline-card.urgent { border-top-color: #dc3545; }
 .border-dashed { border: 2px dashed #dee2e6; background: transparent; box-shadow: none; cursor: pointer; }
-
 .date-tag { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 5px; }
-
-/* Tvoji originalni stilovi */
-.stat-card {
-  border-radius: 16px;
-  transition: transform 0.3s;
-}
-.stat-card:hover { transform: translateY(-5px); }
-
-.stat-icon-wrapper {
-  background: rgba(255, 255, 255, 0.2);
-  width: 55px;
-  height: 55px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-}
-
-.table thead th { font-weight: 600; padding: 15px 10px; }
+.table thead th { font-weight: 600; padding: 15px 10px; background-color: #f8f9fa; }
 .table tbody td { padding: 15px 10px; border-bottom: 1px solid #f8f9fa; }
-.bg-warning { background-color: #ff9800 !important; }
+.rounded-4 { border-radius: 1rem !important; }
 </style>

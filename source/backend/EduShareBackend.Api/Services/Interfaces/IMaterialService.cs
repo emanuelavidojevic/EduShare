@@ -14,7 +14,6 @@ namespace EduShareBackend.Api.Services.Interfaces
     Task<bool>UploadMaterial(MaterialUploadDTO materialUploadDTO);
     Task<IEnumerable<MaterialDTO>> TableMaterial();    
     Task<(byte[] Data, string FileName, string MimeType)?> MaterialDownload(int id);
-    Task<IEnumerable<UserMaterialStatsDTO>> GetUserMaterialStats(int userId);
-    Task<List<string>> GetUserImagesAsync(int userId);
+    Task<object> GetProfileChartData(int userId);
 }
 }
