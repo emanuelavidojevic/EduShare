@@ -1,0 +1,8 @@
+namespace EduShareBackend.Api.Models.Entities
+{
+    public class RoleDTO
+    {
+        public int RoleId{get;set;}
+        public string RoleName{get;set;}
+    }
+}
