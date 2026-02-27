@@ -6,7 +6,7 @@
       </div>
       <h3 class="fw-bold text-dark mb-2">Isticanje sesije</h3>
       <p class="text-muted mb-4">
-        Vaša prijava će uskoro isteći iz bezbednosnih razloga. <br>
+        Vaša prijava će uskoro isteći. <br>
         Želite li da produžite vreme rada?
       </p>
       <div class="d-flex gap-3 justify-content-center">
@@ -14,7 +14,7 @@
           Otkaži
         </button>
         <button @click="$emit('refresh')" class="btn btn-primary px-4 py-2 rounded-pill fw-bold shadow-sm">
-          <i class="bi bi-arrow-clockwise me-1"></i> Osveži
+          <i class="bi bi-arrow-clockwise me-1"></i> Produži sesiju
         </button>
       </div>
     </div>

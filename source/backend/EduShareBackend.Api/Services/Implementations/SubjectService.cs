@@ -9,8 +9,7 @@ using System.Threading.Tasks;
 
 namespace EduShareBackend.Api.Services.Implementations
 {
-
-   public class SubjectService : ISubjectService
+    public class SubjectService : ISubjectService
     {
         private readonly AplicationDbContext _context;
 
@@ -27,6 +26,8 @@ namespace EduShareBackend.Api.Services.Implementations
                     SubjectId = s.SubjectId,
                     NameSubject = s.NameSubject,
                     DescriptionSubject = s.DescriptionSubject,
+                    DepartmentId = s.DepartmentId,
+                    MaterialCount = s.Materials.Count()
                 })
                 .ToListAsync();
         }
@@ -42,6 +43,21 @@ namespace EduShareBackend.Api.Services.Implementations
 
             _context.Subjects.Add(noviPredmet);
             return await _context.SaveChangesAsync() > 0;
+        }
+
+        public async Task<IEnumerable<SubjectDTO>> GetSubjectsByDepartmentAsync(int departmentId)
+        {
+            return await _context.Subjects
+                .Where(s => s.DepartmentId == departmentId) 
+                .Select(s => new SubjectDTO
+                {
+                    SubjectId = s.SubjectId,
+                    NameSubject = s.NameSubject,
+                    DescriptionSubject = s.DescriptionSubject,
+                    DepartmentId = s.DepartmentId,
+                    MaterialCount = s.Materials.Count()
+                })
+                .ToListAsync();
         }
     }
 }

@@ -21,6 +21,7 @@ namespace EduShareBackend.Api.Data
          public DbSet<MaterialData>MaterialData{get;set;}
         public DbSet<Roles>Roles{get;set;}
          public DbSet<UserRoles>UserRoles{get;set;}
+         //public DbSet<Notification> Notifications { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

@@ -1,113 +1,110 @@
 <template>
   <div class="subject-detail p-4">
     <div class="d-flex align-items-center mb-4">
-      <button @click="goBack" class="back-btn shadow-sm me-3" title="Nazad na predmete">
+      <button @click="router.push('/dashboard/subject')" class="btn btn-white border shadow-sm rounded-circle me-3">
         <i class="bi bi-arrow-left"></i>
       </button>
-
       <div>
-        <div class="mb-1">
-          <h2 class="subject-title d-inline-block">{{ subjectName }}</h2>
-        </div>
-        
+        <h2 class="fw-bold mb-0 text-dark">{{ currentSubjectName }}</h2>
         <nav aria-label="breadcrumb">
-          <ol class="breadcrumb mb-0">
-            <li class="breadcrumb-item">
-               <router-link to="/dashboard/subject" class="breadcrumb-link-box">Predmeti</router-link>
-            </li>
-            <li class="breadcrumb-item divider">/</li>
-            <li class="breadcrumb-item active">{{ subjectName }}</li>
+          <ol class="breadcrumb mb-0 small text-muted">
+            <li class="breadcrumb-item"><router-link to="/dashboard/subject" class="text-decoration-none">Predmeti</router-link></li>
+            <li class="breadcrumb-item active text-primary">{{ currentSubjectName }}</li>
           </ol>
         </nav>
       </div>
     </div>
 
-    <div class="row g-4">
-      <div class="col-lg-8">
-        <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
-          <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
-            <h5 class="fw-bold mb-0">Materijali sa predavanja</h5>
-            <button @click="showModal = true" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
-              <i class="bi bi-upload me-2"></i>Dodaj fajl
-            </button>
-          </div>
-          <div class="card-body p-0">
-            <div class="table-responsive">
-              <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light">
-                  <tr>
-                    <th class="ps-4">Naziv fajla</th>
-                    <th>Tip</th>
-                    <th>Datum</th>
-                    <th class="text-end pe-4">Akcija</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(file, index) in materials" :key="index">
-                    <td class="ps-4">
-                      <div class="d-flex align-items-center">
-                        <i :class="['bi fs-4 me-3', getFileIcon(file.type)]"></i>
-                        <span class="fw-medium text-dark">{{ file.name }}</span>
-                      </div>
-                    </td>
-                    <td><span class="badge bg-light text-dark border fw-normal">{{ file.type }}</span></td>
-                    <td class="text-muted small">{{ file.date }}</td>
-                    <td class="text-end pe-4">
-                      <button class="btn btn-sm btn-light border me-2" title="Preuzmi"><i class="bi bi-download"></i></button>
-                      <button class="btn btn-sm btn-outline-danger border-0" @click="removeFile(index)"><i class="bi bi-trash"></i></button>
-                    </td>
-                  </tr>
-                  <tr v-if="materials.length === 0">
-                    <td colspan="4" class="text-center py-5 text-muted">
-                      <i class="bi bi-folder2-open display-4 d-block mb-2"></i>
-                      Još uvek nema materijala za ovaj predmet.
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+      <div class="card-header bg-white border-0 py-4 px-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+          <h5 class="fw-bold mb-0 text-dark">Materijali za ovaj predmet</h5>
+          
+          <div class="d-flex gap-3 align-items-center">
+            <div class="input-group input-group-sm border rounded-pill bg-light px-2" style="width: 280px;">
+              <span class="input-group-text bg-transparent border-0"><i class="bi bi-search text-muted"></i></span>
+              <input v-model="queryParams.searchTerm" @input="debounceSearch" type="text" class="form-control bg-transparent border-0 shadow-none py-2" placeholder="Pretraži fajlove...">
             </div>
+            
+            <button @click="showModal = true" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
+              <i class="bi bi-plus-lg me-2"></i>Dodaj materijal
+            </button>
           </div>
         </div>
       </div>
 
-      <div class="col-lg-4">
-        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-primary text-white">
-          <h5 class="fw-bold mb-3">O predmetu</h5>
-          <p class="small opacity-75">
-            Svi materijali su dostupni za preuzimanje svim studentima. Ukoliko imaš koristan fajl, slobodno ga podeli sa kolegama.
-          </p>
-          <hr class="border-white opacity-25">
-          <div class="d-flex justify-content-between small">
-            <span>Broj resursa:</span>
-            <span class="fw-bold">{{ materials.length }}</span>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light text-uppercase small fw-bold text-muted">
+              <tr>
+                <th class="ps-4 py-3">Naziv materijala</th>
+                <th>Autor</th>
+                <th>Datum objave</th>
+                <th class="text-end pe-4">Opcije</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="file in materials" :key="file.materialId">
+                <td class="ps-4 py-3">
+                  <div class="d-flex align-items-center">
+                    <i :class="['bi fs-4 me-3', getFileIcon(file.type)]"></i>
+                    <span class="fw-semibold text-dark">{{ file.name }}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="avatar-sm me-2 bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; font-size: 11px;">
+                      {{ file.authorName?.split(' ').map(n => n[0]).join('') }}
+                    </div>
+                    <span class="small fw-medium">{{ file.authorName }}</span>
+                  </div>
+                </td>
+                <td class="text-muted small">{{ formatDate(file.dateCreated) }}</td>
+                <td class="text-end pe-4">
+                  <button class="btn btn-sm btn-outline-primary rounded-pill px-3 me-2" @click="downloadFile(file.materialId, file.name)">
+                    <i class="bi bi-download me-1"></i> Preuzmi
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="materials.length === 0">
+                <td colspan="4" class="text-center py-5 text-muted">Nema pronađenih materijala.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center p-4 border-top bg-light-subtle">
+          <span class="small text-muted">Stranica <b>{{ queryParams.page }}</b></span>
+          <div class="pagination-btns">
+            <button @click="changePage(-1)" :disabled="queryParams.page === 1" class="btn btn-sm btn-white border shadow-sm px-3 rounded-pill me-2">Prethodna</button>
+            <button @click="changePage(1)" :disabled="materials.length < queryParams.pageSize" class="btn btn-sm btn-white border shadow-sm px-3 rounded-pill">Sledeća</button>
           </div>
         </div>
       </div>
     </div>
 
     <div v-if="showModal" class="custom-modal-overlay">
-      <div class="custom-modal-card">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-          <h4 class="fw-bold mb-0">Dodaj fajl</h4>
-          <button @click="showModal = false" class="btn-close"></button>
-        </div>
-        
-        <form @submit.prevent="addNewFile">
+      <div class="custom-modal-card shadow-lg p-4 border-0 rounded-4" style="max-width: 450px; background: #fff; margin: auto; position: relative; top: 10%;">
+        <h4 class="fw-bold mb-4">Otpremi materijal</h4>
+        <form @submit.prevent="handleUpload">
           <div class="mb-3">
-            <label class="form-label small fw-bold text-muted">Naziv dokumenta</label>
-            <input v-model="newFile.name" type="text" class="form-control" placeholder="Unesite naziv..." required>
+            <label class="form-label small fw-bold">Naziv materijala</label>
+            <input v-model="uploadForm.name" type="text" class="form-control rounded-3" required placeholder="Npr. Vežbe 1 - Osnove">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Kratak opis (opciono)</label>
+            <textarea v-model="uploadForm.description" class="form-control rounded-3" rows="2" placeholder="Dodatne info..."></textarea>
           </div>
           <div class="mb-4">
-            <label class="form-label small fw-bold text-muted">Tip</label>
-            <select v-model="newFile.type" class="form-select">
-              <option value="PDF">PDF</option>
-              <option value="ZIP">ZIP</option>
-              <option value="DOCX">Word</option>
-            </select>
+            <label class="form-label small fw-bold text-primary">Izaberi fajl</label>
+            <input type="file" @change="onFileSelected" class="form-control border-primary border-dashed" required>
           </div>
           <div class="d-flex gap-2">
-            <button type="button" @click="showModal = false" class="btn btn-light w-100 rounded-pill">Odustani</button>
-            <button type="submit" class="btn btn-primary w-100 rounded-pill shadow-sm">Potvrdi</button>
+            <button type="button" @click="showModal = false" class="btn btn-light w-100 rounded-pill fw-bold">Otkaži</button>
+            <button type="submit" class="btn btn-primary w-100 rounded-pill fw-bold" :disabled="isUploading">
+               {{ isUploading ? 'Slanje...' : 'Potvrdi' }}
+            </button>
           </div>
         </form>
       </div>
@@ -116,112 +113,88 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import axios from 'axios';
 
 const route = useRoute();
 const router = useRouter();
+const materials = ref([]);
+const currentSubjectName = ref('');
+const showModal = ref(false);
+const isUploading = ref(false);
+const selectedFile = ref<File | null>(null);
 
-const subjectName = computed(() => {
-  const idParam = route.params.id;
-  const id = Array.isArray(idParam) ? idParam[0] : idParam;
-  if (!id) return 'Predmet';
-  return id.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+const queryParams = ref({
+  subjectId: Number(route.params.id),
+  searchTerm: '',
+  page: 1,
+  pageSize: 10,
+  sortBy: 'date'
 });
 
-// ISPRAVLJENO: Navigacija nazad na dashboard listu predmeta
-const goBack = () => router.push('/dashboard/subject');
+const uploadForm = ref({ name: '', description: '' });
 
-const showModal = ref(false);
-const materials = ref([
-  { name: 'Predavanje 1 - Uvod.pdf', type: 'PDF', date: '15. Feb 2026' },
-  { name: 'Vezba_02_Resenja.zip', type: 'ZIP', date: '17. Feb 2026' }
-]);
-
-const newFile = ref({ name: '', type: 'PDF' });
-
-const addNewFile = () => {
-  const today = new Date().toLocaleDateString('sr-RS', { day: '2-digit', month: 'short', year: 'numeric' });
-  materials.value.push({
-    name: newFile.value.name + (newFile.value.type === 'PDF' ? '.pdf' : newFile.value.type === 'ZIP' ? '.zip' : '.docx'),
-    type: newFile.value.type,
-    date: today
-  });
-  newFile.value = { name: '', type: 'PDF' };
-  showModal.value = false;
+const fetchMaterials = async () => {
+  try {
+    const res = await axios.get('http://localhost:5145/api/Material', { params: queryParams.value, withCredentials: true });
+    materials.value = res.data;
+    if (res.data.length > 0) currentSubjectName.value = res.data[0].nameSubject;
+  } catch (e) { console.error(e); }
 };
 
-const removeFile = (index: number) => {
-  materials.value.splice(index, 1);
+const handleUpload = async () => {
+  if (!selectedFile.value) return;
+  isUploading.value = true;
+  const user = JSON.parse(localStorage.getItem('user_display') || '{}');
+  const formData = new FormData();
+  formData.append('File', selectedFile.value);
+  formData.append('Name', uploadForm.value.name);
+  formData.append('Description', uploadForm.value.description);
+  formData.append('SubjectId', route.params.id as string);
+  formData.append('UserId', user.userId);
+
+  try {
+    await axios.post('http://localhost:5145/api/Material/upload', formData, { withCredentials: true });
+    showModal.value = false;
+    uploadForm.value = { name: '', description: '' };
+    fetchMaterials();
+  } catch (e) { alert("Greška!"); } finally { isUploading.value = false; }
+};
+
+const onFileSelected = (e: any) => {
+  selectedFile.value = e.target.files[0];
+  if (!uploadForm.value.name) uploadForm.value.name = selectedFile.value?.name.split('.')[0] || '';
+};
+
+const changePage = (step: number) => {
+  queryParams.value.page += step;
+  fetchMaterials();
 };
 
 const getFileIcon = (type: string) => {
-  switch(type) {
-    case 'PDF': return 'bi-file-earmark-pdf text-danger';
-    case 'ZIP': return 'bi-file-earmark-zip text-warning';
-    case 'DOCX': return 'bi-file-earmark-word text-primary';
-    default: return 'bi-file-earmark-text';
-  }
+  const icons: any = { Pdf: 'bi-file-earmark-pdf text-danger', Image: 'bi-image text-warning', Document: 'bi-file-earmark-word text-primary' };
+  return icons[type] || 'bi-file-earmark text-secondary';
 };
+
+const downloadFile = async (id: number, name: string) => {
+  const res = await axios.get(`http://localhost:5145/api/Material/download/${id}`, { responseType: 'blob', withCredentials: true });
+  const url = window.URL.createObjectURL(new Blob([res.data]));
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', name);
+  document.body.appendChild(link);
+  link.click();
+};
+
+const formatDate = (d: string) => new Date(d).toLocaleDateString('sr-RS');
+let timeout: any;
+const debounceSearch = () => { clearTimeout(timeout); timeout = setTimeout(() => { queryParams.value.page = 1; fetchMaterials(); }, 500); };
+
+onMounted(fetchMaterials);
 </script>
 
 <style scoped>
-/* Zadržani svi tvoji stilovi bez promena */
-.subject-detail { animation: fadeIn 0.4s ease-out; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-.back-btn {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  border: 1px solid #eee;
-  background: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  cursor: pointer;
-}
-.back-btn:hover { background: #f8f9fa; transform: scale(1.05); }
-
-.subject-title {
-  background-color: #3b71db;
-  color: white;
-  padding: 4px 12px;
-  font-weight: 700;
-  margin: 0;
-  border-radius: 2px;
-}
-
-.breadcrumb-link-box {
-  background-color: #3b71db;
-  color: white !important;
-  padding: 2px 8px;
-  text-decoration: none;
-  font-size: 0.9rem;
-  border-radius: 2px;
-}
-
-.divider { padding: 0 8px; color: #adb5bd; font-weight: 300; }
-.breadcrumb-item.active { color: #495057; font-weight: 500; font-size: 0.9rem; }
-.breadcrumb-item + .breadcrumb-item::before { content: none; }
-.rounded-4 { border-radius: 1rem !important; }
-.table th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.8px; color: #adb5bd; padding: 1rem 0.5rem; }
-
-.custom-modal-overlay {
-  position: fixed;
-  top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(6px);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 2000;
-}
-.custom-modal-card {
-  background: white;
-  padding: 2rem;
-  border-radius: 20px;
-  width: 90%;
-  max-width: 400px;
-  box-shadow: 0 15px 30px rgba(0,0,0,0.1);
-}
+.custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 9999; display: flex; }
+.btn-white { background: white; }
 </style>

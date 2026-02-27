@@ -81,9 +81,9 @@ namespace EduShareBackend.Api.Services.Implementations
 
         private async Task<TokenDTO> PrepareAuthResponse(Users user)
         {
-            var expiry = DateTime.UtcNow.AddMinutes(1);
+            var expiry = DateTime.UtcNow.AddMinutes(60);
             var token = CreateJwtToken(user, expiry);
-            SetTokenCookie("accessToken", token, 1);
+            SetTokenCookie("accessToken", token, 60);
 
             return new TokenDTO { Expiry = expiry };
         }
@@ -94,7 +94,8 @@ namespace EduShareBackend.Api.Services.Implementations
             {
                 new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim("AspNet.Identity.SecurityStamp", user.SecurityStamp)
+                new Claim("AspNet.Identity.SecurityStamp", user.SecurityStamp),
+                new Claim("DepartmentId", user.DepartmentId.ToString())
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]!));
@@ -126,33 +127,34 @@ namespace EduShareBackend.Api.Services.Implementations
                 Expires = DateTime.UtcNow.AddMinutes(minutes)
             });
         }
-   public async Task<object> GetCurrentUserAsync()
-{
-    var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-    if (string.IsNullOrEmpty(userIdClaim)) return null;
 
-    var id = int.Parse(userIdClaim);
-    var user = await _context.Users
-        .Include(u => u.Department)
-        .FirstOrDefaultAsync(u => u.UserId == id);
+        public async Task<object> GetCurrentUserAsync()
+        {
+            var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return null;
 
-    if (user == null) return null;
+            var id = int.Parse(userIdClaim);
+            var user = await _context.Users
+                .Include(u => u.Department)
+                .FirstOrDefaultAsync(u => u.UserId == id);
 
-    var roleName = await _context.UserRoles
-        .Where(ur => ur.UserId == id)
-        .Include(ur => ur.Role)
-        .Select(ur => ur.Role.RoleName)
-        .FirstOrDefaultAsync();
+            if (user == null) return null;
 
-    return new 
-    {
-        userId = user.UserId,
-        firstName = user.FirstName,
-        lastName = user.LastName,
-        email = user.Email,
-        role = roleName ?? "Student",
-        departmentName = user.Department?.DepartmentName ?? "Nema smera"
-    };
-}
+            var roleName = await _context.UserRoles
+                .Where(ur => ur.UserId == id)
+                .Include(ur => ur.Role)
+                .Select(ur => ur.Role.RoleName)
+                .FirstOrDefaultAsync();
+
+            return new 
+            {
+                userId = user.UserId,
+                firstName = user.FirstName,
+                lastName = user.LastName,
+                email = user.Email,
+                role = roleName ?? "Student",
+                departmentName = user.Department?.DepartmentName ?? "Nema smera"
+            };
+        }
     }
 }

@@ -10,6 +10,8 @@ namespace EduShareBackend.Api.Models.Entities
         public MaterialType Type { get; set; }
         public DateTime DateCreated{get;set;}
         public string AuthorName { get; set; }
+         public int SubjectId{get;set;}
+        public string NameSubject{get;set;}
     
     }
 }

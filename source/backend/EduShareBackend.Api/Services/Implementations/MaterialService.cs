@@ -4,11 +4,6 @@ using EduShareBackend.Api.Data;
 using EduShareBackend.Api.Services.Interfaces;
 using EduShareBackend.Api.Models;
 using EduShareBackend.Api.Models.Enums;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace EduShareBackend.Api.Services.Implementations
 {
@@ -21,44 +16,41 @@ namespace EduShareBackend.Api.Services.Implementations
             _context = context;
         }
 
-        public async Task<IEnumerable<MaterialDTO>> TableMaterial()
+        public async Task<IEnumerable<MaterialDTO>> TableMaterial(MaterialQueryDTO query)
         {
-            return await _context.Materials
-                .Include(m => m.User) 
-                .OrderByDescending(m => m.DateCreated)
-                .Take(5)
+            var materialsQuery = _context.Materials
+                .Include(m => m.User)
+                .Include(m => m.Subject)
+                .AsQueryable();
+
+            if (query.SubjectId.HasValue)
+                materialsQuery = materialsQuery.Where(m => m.SubjectId == query.SubjectId);
+
+            if (query.UserId.HasValue)
+                materialsQuery = materialsQuery.Where(m => m.UserId == query.UserId);
+
+            if (!string.IsNullOrEmpty(query.SearchTerm))
+                materialsQuery = materialsQuery.Where(m => m.Name.Contains(query.SearchTerm));
+
+            materialsQuery = query.SortBy == "name" 
+                ? materialsQuery.OrderBy(m => m.Name) 
+                : materialsQuery.OrderByDescending(m => m.DateCreated);
+
+            return await materialsQuery
+                .Skip((query.Page - 1) * query.PageSize)
+                .Take(query.PageSize)
                 .Select(m => new MaterialDTO
                 {
                     MaterialId = m.MaterialId,
                     Name = m.Name,
                     DescriptionMaterial = m.DescriptionMaterial,
                     DateCreated = m.DateCreated,
-                    Type = (MaterialType)m.Type, 
-                    AuthorName = m.User != null 
-                        ? $"{m.User.FirstName} {m.User.LastName}" 
-                        : "Nepoznat Autor"
+                    SubjectId = m.SubjectId,
+                    NameSubject = m.Subject.NameSubject,
+                    Type = (MaterialType)m.Type,
+                    AuthorName = m.User != null ? $"{m.User.FirstName} {m.User.LastName}" : "Sistem"
                 })
                 .ToListAsync();
-        }
-
-        public async Task<(byte[] Data, string FileName, string MimeType)?> MaterialDownload(int id)
-        {
-            var meta = await _context.Materials.FirstOrDefaultAsync(m => m.MaterialId == id);
-            if (meta == null) return null;
-
-            var fileData = await _context.MaterialData.FirstOrDefaultAsync(md => md.MaterialId == id);
-            if (fileData == null) return null;
-
-            string mimeType = (MaterialType)meta.Type switch
-            {
-                MaterialType.Pdf => "application/pdf",
-                MaterialType.Image => "image/png",
-                MaterialType.Video => "video/mp4",
-                MaterialType.Document => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                _ => "application/octet-stream"
-            };
-
-            return (fileData.Data, meta.Name, mimeType);
         }
 
         public async Task<bool> UploadMaterial(MaterialUploadDTO dto)
@@ -70,9 +62,9 @@ namespace EduShareBackend.Api.Services.Implementations
                 MaterialType finalType = extension switch
                 {
                     ".pdf" => MaterialType.Pdf,
-                    ".jpg" or ".jpeg" or ".png" or ".gif" => MaterialType.Image,
-                    ".mp4" or ".avi" or ".mkv" => MaterialType.Video,
-                    ".doc" or ".docx" or ".txt" => MaterialType.Document,
+                    ".jpg" or ".jpeg" or ".png" => MaterialType.Image,
+                    ".mp4" or ".avi" => MaterialType.Video,
+                    ".doc" or ".docx" => MaterialType.Document,
                     _ => MaterialType.Others
                 };
 
@@ -85,10 +77,11 @@ namespace EduShareBackend.Api.Services.Implementations
 
                 var newMaterial = new Materials
                 {
-                    Name = dto.File.FileName,
+                    Name = dto.Name,
+                    // Ako je opis prazan ili "string", stavljamo null da ne ruži dizajn
                     DescriptionMaterial = (string.IsNullOrEmpty(dto.Description) || dto.Description == "string") 
-                                          ? "Automatski dodat materijal" : dto.Description,
-                    UserId = dto.UserId,
+                                          ? null : dto.Description,
+                    UserId = dto.UserId, 
                     SubjectId = dto.SubjectId,
                     DateCreated = DateTime.Now,
                     Type = (int)finalType
@@ -106,49 +99,60 @@ namespace EduShareBackend.Api.Services.Implementations
             catch { await transaction.RollbackAsync(); return false; }
         }
 
+        public async Task<object> GetProfileChartData(int userId)
+        {
+            var user = await _context.Users.Include(u => u.Department).FirstOrDefaultAsync(u => u.UserId == userId);
+            if (user == null || user.Department == null) return new { types = new List<object>(), subjects = new List<object>(), totalCount = 0 };
+
+            var userMaterials = await _context.Materials.Where(m => m.UserId == userId).ToListAsync();
+            
+            var typeStats = userMaterials
+                .GroupBy(m => (MaterialType)m.Type)
+                .Select(g => new {
+                    label = g.Key.ToString(),
+                    count = g.Count(),
+                    percentage = userMaterials.Any() ? Math.Round((double)g.Count() / userMaterials.Count * 100, 1) : 0
+                }).ToList();
+
+            var subjectsInDept = await _context.Subjects
+                .Include(s => s.Materials)
+                .Where(s => s.DepartmentId == user.DepartmentId)
+                .ToListAsync();
+
+            var totalMaterialsInDept = subjectsInDept.Sum(s => s.Materials.Count);
+
+            var subjectStats = subjectsInDept
+                .Select(s => new {
+                    label = s.NameSubject,
+                    count = s.Materials.Count,
+                    percentage = totalMaterialsInDept > 0 ? Math.Round((double)s.Materials.Count / totalMaterialsInDept * 100, 1) : 0
+                })
+                .OrderByDescending(x => x.count).Take(6).ToList();
+
+            return new { types = typeStats, subjects = subjectStats, totalCount = userMaterials.Count };
+        }
+
+        public async Task<(byte[] Data, string FileName, string MimeType)?> MaterialDownload(int id)
+        {
+            var meta = await _context.Materials.FirstOrDefaultAsync(m => m.MaterialId == id);
+            var fileData = await _context.MaterialData.FirstOrDefaultAsync(md => md.MaterialId == id);
+            if (meta == null || fileData == null) return null;
+
+            string mimeType = (MaterialType)meta.Type switch {
+                MaterialType.Pdf => "application/pdf",
+                MaterialType.Image => "image/png",
+                MaterialType.Document => "application/msword",
+                _ => "application/octet-stream"
+            };
+            return (fileData.Data, meta.Name, mimeType);
+        }
+
         public async Task<bool> DeleteMaterialAsync(int id)
         {
             var material = await _context.Materials.FindAsync(id);
             if (material == null) return false;
             _context.Materials.Remove(material);
             return await _context.SaveChangesAsync() > 0;
-        }
-
-        public async Task<object> GetProfileChartData(int userId)
-        {
-            var userMaterials = await _context.Materials
-                .Include(m => m.Subject) 
-                .Where(m => m.UserId == userId)
-                .ToListAsync();
-
-            if (userMaterials == null || !userMaterials.Any()) 
-            {
-                return new { types = new List<object>(), subjects = new List<object>(), totalCount = 0 };
-            }
-
-            var typeStats = userMaterials
-                .GroupBy(m => (MaterialType)m.Type)
-                .Select(g => new {
-                    label = g.Key.ToString(), 
-                    count = g.Count(),
-                    percentage = Math.Round((double)g.Count() / userMaterials.Count * 100, 1)
-                }).ToList();
-
-            var subjectStats = userMaterials
-                .GroupBy(m => m.Subject != null ? m.Subject.NameSubject : "Nepoznat predmet")
-                .Select(g => new {
-                    label = g.Key, 
-                    count = g.Count(),
-                    percentage = Math.Round((double)g.Count() / userMaterials.Count * 100, 1)
-                })
-                .OrderByDescending(x => x.count)
-                .ToList();
-
-            return new {
-                types = typeStats,
-                subjects = subjectStats,
-                totalCount = userMaterials.Count
-            };
         }
     }
 }

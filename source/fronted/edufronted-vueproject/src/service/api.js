@@ -11,16 +11,11 @@ api.interceptors.response.use(
         const originalRequest = error.config;
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
-            if (window.confirm("Sesija istekla. Osvežiti?")) {
-                try {
-                    await axios.post('http://localhost:5145/api/Auth/refresh-access-token', {}, { withCredentials: true });
-                    return api(originalRequest);
-                } catch (err) {
-                    window.location.href = '/login';
-                    return Promise.reject(err);
-                }
-            } else {
-                window.location.href = '/login';
+            try {
+                await axios.post('http://localhost:5145/api/Auth/refresh-token', {}, { withCredentials: true });
+                return api(originalRequest);
+            } catch (refreshError) {
+                return Promise.reject(refreshError);
             }
         }
         return Promise.reject(error);

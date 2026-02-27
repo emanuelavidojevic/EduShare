@@ -19,5 +19,6 @@ namespace EduShareBackend.Api.Services.Interfaces
     {
     Task<IEnumerable<SubjectDTO>>GetNumberOfMaterial();
     Task<bool> CreateSubjectAsync(SubjectDTO dto);
+    Task<IEnumerable<SubjectDTO>> GetSubjectsByDepartmentAsync(int departmentId);
     }
 }

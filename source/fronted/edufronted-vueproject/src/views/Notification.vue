@@ -1,144 +1,123 @@
-<script setup>
-import { ref } from 'vue';
-
-// Primer podataka (ovo bi inače dolazilo sa API-ja)
-const notifications = ref([
-  {
-    id: 1,
-    title: "Novi materijal postavljen",
-    message: "Profesor je dodao novu lekciju u predmetu 'Programiranje 1'.",
-    time: "Pre 5 minuta",
-    type: "info",
-    isRead: false
-  },
-  {
-    id: 2,
-    title: "Promena termina vežbi",
-    message: "Vežbe iz 'Matematike' su pomerene za četvrtak u 12:00h.",
-    time: "Pre 2 sata",
-    type: "warning",
-    isRead: false
-  },
-  {
-    id: 3,
-    title: "Uspešna prijava",
-    message: "Uspešno ste se prijavili na kurs 'Web Dizajn'.",
-    time: "Juče",
-    type: "success",
-    isRead: true
-  }
-]);
-
-const markAsRead = (id) => {
-  const notif = notifications.value.find(n => n.id === id);
-  if (notif) notif.isRead = true;
-};
-
-const markAllAsRead = () => {
-  notifications.value.forEach(n => n.isRead = true);
-};
-</script>
-
-<template>
-  <div class="notifications-container">
+<!--<template>
+  <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2 class="fw-bold m-0">Obaveštenja</h2>
-      <button 
-        @click="markAllAsRead" 
-        class="btn btn-outline-primary btn-sm"
-        v-if="notifications.some(n => !n.isRead)"
-      >
-        Označi sve kao pročitano
+      <h3 class="fw-bold text-dark m-0">
+        <i class="bi bi-bell-fill text-primary me-2"></i>Aktivnosti na platformi
+      </h3>
+      <button @click="fetchNotifications" class="btn btn-light btn-sm rounded-pill px-3 border">
+        <i class="bi bi-arrow-clockwise me-1"></i> Osveži
       </button>
     </div>
 
-    <div class="card shadow-sm border-0">
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
       <div class="list-group list-group-flush">
-        <div 
-          v-for="notif in notifications" 
-          :key="notif.id"
-          class="list-group-item list-group-item-action p-3 notification-item"
-          :class="{ 'unread': !notif.isRead }"
-          @click="markAsRead(notif.id)"
-        >
-          <div class="d-flex align-items-start">
-            <div :class="['icon-circle me-3', notif.type]">
-              <i v-if="notif.type === 'info'" class="bi bi-info-circle"></i>
-              <i v-if="notif.type === 'warning'" class="bi bi-exclamation-triangle"></i>
-              <i v-if="notif.type === 'success'" class="bi bi-check-circle"></i>
-            </div>
+        <div v-if="loading" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="mt-2 text-muted">Učitavanje obaveštenja...</p>
+        </div>
 
-            <div class="flex-grow-1">
-              <div class="d-flex justify-content-between align-items-center">
-                <h6 class="mb-1 fw-bold">{{ notif.title }}</h6>
-                <small class="text-muted">{{ notif.time }}</small>
-              </div>
-              <p class="mb-0 text-secondary small">{{ notif.message }}</p>
+        <div v-for="note in notifications" :key="note.id" class="list-group-item p-4 border-start-4" :class="getBorderClass(note.type)">
+          <div class="d-flex gap-3">
+            <div :class="['icon-box rounded-circle d-flex align-items-center justify-content-center shadow-sm', getIconBg(note.type)]" style="width: 45px; height: 45px; flex-shrink: 0;">
+              <i :class="['bi text-white fs-5', getIcon(note.type)]"></i>
             </div>
-            
-            <div v-if="!notif.isRead" class="unread-dot ms-2"></div>
+            <div class="flex-grow-1">
+              <div class="d-flex justify-content-between align-items-start">
+                <h6 class="fw-bold mb-1 text-dark">{{ note.title }}</h6>
+                <span class="badge bg-light text-muted fw-normal">{{ formatTime(note.timestamp) }}</span>
+              </div>
+              <p class="mb-0 text-secondary small">{{ note.message }}</p>
+              <div class="mt-2">
+                <span class="small text-primary fw-semibold cursor-pointer" @click="navigateToChange(note)">
+                  Pogledaj detalje <i class="bi bi-chevron-right small"></i>
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div v-if="notifications.length === 0" class="p-5 text-center">
-          <i class="bi bi-bell-slash text-muted display-4"></i>
-          <p class="mt-3 text-muted">Trenutno nemate novih obaveštenja.</p>
+        <div v-if="!loading && notifications.length === 0" class="text-center py-5">
+          <i class="bi bi- mailbox2 fs-1 text-muted d-block mb-2"></i>
+          <p class="text-muted">Trenutno nema novih aktivnosti.</p>
         </div>
       </div>
     </div>
   </div>
 </template>
 
+<script setup>
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import axios from 'axios';
+
+const router = useRouter();
+const notifications = ref([]);
+const loading = ref(true);
+
+const fetchNotifications = async () => {
+  try {
+    loading.value = true;
+    // Napomena: Ovaj endpoint treba da vrati listu logova (npr. AuditLogs ili Notifications tabelu)
+    const res = await axios.get('http://localhost:5145/api/Notification', { withCredentials: true });
+    notifications.value = res.data;
+  } catch (e) {
+    console.error("Greška pri učitavanju obaveštenja", e);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const getIcon = (type) => {
+  const icons = {
+    'Upload': 'bi-cloud-arrow-up',
+    'Delete': 'bi-trash3',
+    'SubjectCreated': 'bi-journal-plus',
+    'Update': 'bi-pencil-square'
+  };
+  return icons[type] || 'bi-info-circle';
+};
+
+const getIconBg = (type) => {
+  const bgs = {
+    'Upload': 'bg-success',
+    'Delete': 'bg-danger',
+    'SubjectCreated': 'bg-primary',
+    'Update': 'bg-warning'
+  };
+  return bgs[type] || 'bg-secondary';
+};
+
+const getBorderClass = (type) => {
+  const classes = {
+    'Upload': 'border-start-success',
+    'Delete': 'border-start-danger',
+    'SubjectCreated': 'border-start-primary',
+    'Update': 'border-start-warning'
+  };
+  return classes[type] || 'border-start-secondary';
+};
+
+const formatTime = (date) => {
+  return new Date(date).toLocaleString('sr-RS', { 
+    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' 
+  });
+};
+
+const navigateToChange = (note) => {
+  if (note.subjectId) {
+    router.push(`/dashboard/subject/${note.subjectId}`);
+  }
+};
+
+onMounted(fetchNotifications);
+</script>
+
 <style scoped>
-.notifications-container {
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-.notification-item {
-  cursor: pointer;
-  transition: 0.2s;
-  border-left: 4px solid transparent;
-}
-
-.notification-item.unread {
-  background-color: #f0f7ff;
-  border-left-color: #0d6efd;
-}
-
-.notification-item:hover {
-  background-color: #f8f9fa;
-}
-
-.icon-circle {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.icon-circle i {
-  font-size: 1.2rem;
-}
-
-/* Boje ikona */
-.info { background-color: #e7f1ff; color: #0d6efd; }
-.warning { background-color: #fff3cd; color: #856404; }
-.success { background-color: #d1e7dd; color: #0f5132; }
-
-.unread-dot {
-  width: 10px;
-  height: 10px;
-  background-color: #0d6efd;
-  border-radius: 50%;
-  align-self: center;
-}
-
-.card {
-  border-radius: 12px;
-  overflow: hidden;
-}
-</style>
+.border-start-4 { border-left: 4px solid transparent !important; }
+.border-start-success { border-left-color: #198754 !important; }
+.border-start-danger { border-left-color: #dc3545 !important; }
+.border-start-primary { border-left-color: #0d6efd !important; }
+.border-start-warning { border-left-color: #ffc107 !important; }
+.cursor-pointer { cursor: pointer; }
+.list-group-item:hover { background-color: #f8f9fa; }
+</style>-->

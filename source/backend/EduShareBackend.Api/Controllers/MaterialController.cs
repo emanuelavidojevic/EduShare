@@ -18,13 +18,12 @@ namespace EduShareBackend.Api.Controllers
             _materialService = materialService;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetTable()
-        {
-            var materials = await _materialService.TableMaterial();
-            return Ok(materials);
-        }
-
+       [HttpGet]
+public async Task<IActionResult> GetTable([FromQuery] MaterialQueryDTO query)
+{
+    var materials = await _materialService.TableMaterial(query);
+    return Ok(materials);
+}
         [HttpGet("download/{id}")]
         public async Task<IActionResult> Download(int id)
         {
