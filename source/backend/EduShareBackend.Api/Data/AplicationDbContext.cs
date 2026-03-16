@@ -21,12 +21,12 @@ namespace EduShareBackend.Api.Data
          public DbSet<MaterialData>MaterialData{get;set;}
         public DbSet<Roles>Roles{get;set;}
          public DbSet<UserRoles>UserRoles{get;set;}
-         //public DbSet<Notification> Notifications { get; set; }
+         public DbSet<Notification> Notifications { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // Ova linija automatski učitava sve tvoje Fluent API konfiguracije
+            
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AplicationDbContext).Assembly);
         }
 

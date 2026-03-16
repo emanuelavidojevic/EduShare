@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using EduShareBackend.Api.Services.Interfaces;
 using EduShareBackend.Api.Models;
 using Microsoft.AspNetCore.Authorization;
-using System.Threading.Tasks;
+using System.Security.Claims;
 
 namespace EduShareBackend.Api.Controllers
 {
@@ -18,18 +18,18 @@ namespace EduShareBackend.Api.Controllers
             _materialService = materialService;
         }
 
-       [HttpGet]
-public async Task<IActionResult> GetTable([FromQuery] MaterialQueryDTO query)
-{
-    var materials = await _materialService.TableMaterial(query);
-    return Ok(materials);
-}
+        [HttpGet]
+        public async Task<IActionResult> GetTable([FromQuery] MaterialQueryDTO query)
+        {
+            var materials = await _materialService.TableMaterial(query);
+            return Ok(materials);
+        }
+
         [HttpGet("download/{id}")]
         public async Task<IActionResult> Download(int id)
         {
             var result = await _materialService.MaterialDownload(id);
             if (result == null) return NotFound("Fajl nije pronađen.");
-
             return File(result.Value.Data, result.Value.MimeType, result.Value.FileName);
         }
 
@@ -42,12 +42,19 @@ public async Task<IActionResult> GetTable([FromQuery] MaterialQueryDTO query)
             return success ? Ok("Uspešno sačuvano.") : BadRequest("Greška pri čuvanju.");
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            var deleted = await _materialService.DeleteMaterialAsync(id);
-            return deleted ? Ok("Obrisano.") : NotFound();
-        }
+       [HttpDelete("{id}")]
+public async Task<IActionResult> Delete(int id)
+{
+    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+    if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
+
+    var userId = int.Parse(userIdClaim);
+    var deleted = await _materialService.DeleteMaterialAsync(id, userId, userRole);
+    
+    return deleted ? Ok("Obrisano.") : Forbid("Nemate dozvolu za brisanje ovog materijala.");
+}
 
         [HttpGet("dashboard-stats/{userId}")]
         public async Task<IActionResult> GetDashboardStats(int userId)

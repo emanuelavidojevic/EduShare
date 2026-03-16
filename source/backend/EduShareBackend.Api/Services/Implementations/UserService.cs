@@ -16,11 +16,18 @@ namespace EduShareBackend.Api.Services.Implementations
 
         public async Task<IEnumerable<UserDTO>> GetUsersAsync()
         {
-            var users = await _context.Users.ToListAsync();
+            var users = await _context.Users
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .ToListAsync();
+
             return users.Select(u => new UserDTO
             {
                 UserId = u.UserId,
-                FirstName = u.FirstName,
+                // Provera uloge i dodavanje prefiksa
+                FirstName = u.UserRoles.Any(ur => ur.Role.RoleName == "Professor") 
+                    ? "prof. " + u.FirstName 
+                    : u.FirstName,
                 LastName = u.LastName,
                 Email = u.Email,
                 DateRegistration = u.DateRegistration
@@ -37,7 +44,8 @@ namespace EduShareBackend.Api.Services.Implementations
                 Email = UserDTO.Email,
                 Password = securePassword,
                 SecurityStamp = Guid.NewGuid().ToString(),
-                DateRegistration = DateTime.UtcNow
+                DateRegistration = DateTime.UtcNow,
+                RefreshToken = string.Empty
             };
 
             _context.Users.Add(newUser);
@@ -46,7 +54,7 @@ namespace EduShareBackend.Api.Services.Implementations
             return new UserDTO
             {
                 UserId = newUser.UserId,
-                FirstName = newUser.FirstName,
+                FirstName = newUser.FirstName, 
                 LastName = newUser.LastName,
                 Email = newUser.Email,
                 DateRegistration = newUser.DateRegistration
@@ -71,10 +79,12 @@ namespace EduShareBackend.Api.Services.Implementations
             }
 
             bool isStudent = user.UserRoles.Any(ur => ur.Role.RoleName == "Student");
+            
             if (isStudent && role.RoleName == "Admin")
-            {
                 return "Error! Student ne moze biti admin";
-            }
+
+            if (isStudent && role.RoleName == "Professor")
+                return "Error! Student ne moze biti profesor";
 
             user.UserRoles.Add(new UserRoles { UserId = userId, RoleId = roleId });
             user.SecurityStamp = Guid.NewGuid().ToString();

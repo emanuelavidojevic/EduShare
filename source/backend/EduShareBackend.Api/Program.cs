@@ -1,28 +1,36 @@
 using EduShareBackend.Api.Data;
-using Microsoft.EntityFrameworkCore;
 using EduShareBackend.Api.Services.Interfaces;
 using EduShareBackend.Api.Services.Implementations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using Microsoft.OpenApi.Models;
+using System.Text;
 using System.Security.Claims;
+using EduShareBackend.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("MySqlConnection");
 
+// Database
 builder.Services.AddDbContext<AplicationDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
 );
 
+// Dependency Injection - Registracija servisa
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IMaterialService, MaterialService>();
 builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-//builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ICommentService, CommentService>();
+builder.Services.AddScoped<IRatingService, RatingService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
+
 builder.Services.AddHttpContextAccessor();
 
+// Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -53,29 +61,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     context.Token = cookieToken;
                 }
                 return Task.CompletedTask;
-            },
-            OnTokenValidated = async context =>
-            {
-                var dbContext = context.HttpContext.RequestServices.GetRequiredService<AplicationDbContext>();
-                var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var stampFromToken = context.Principal?.FindFirst("AspNet.Identity.SecurityStamp")?.Value;
-
-                if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(stampFromToken))
-                {
-                    context.Fail("Unauthorized");
-                    return;
-                }
-
-                var user = await dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == int.Parse(userId));
-                
-                if (user == null || user.SecurityStamp != stampFromToken)
-                {
-                    context.Fail("Unauthorized");
-                }
             }
         };
     });
 
+// Authorization
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("ProfessorOnly", policy => policy.RequireRole("Professor"));
+    options.AddPolicy("StudentOnly", policy => policy.RequireRole("Student"));
+});
+
+// CORS - Bitno za Vue.js
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("VuePolicy", policy =>
@@ -94,7 +92,7 @@ builder.Services.AddSwaggerGen(c =>
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         In = ParameterLocation.Header,
-        Description = "Bearer {token}",
+        Description = "Unesite 'Bearer {token}'",
         Name = "Authorization",
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"

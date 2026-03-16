@@ -9,7 +9,6 @@ namespace EduShareBackend.Api.Models.Entities
         public string Password{get; set;}
         public int DepartmentId{get;set;}
         public int RoleId{get;set;}
-
         public DateTime DateRegistration { get; set; }
         
 

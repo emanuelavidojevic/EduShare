@@ -18,7 +18,12 @@ namespace EduShareBackend.Api.Models
         [MinLength(5, ErrorMessage = "Lozinka mora imati najmanje 8 karaktera.")]
         public string Password { get; set; }
 
-        public int DepartmentId { get; set; }
-        public int RoleId { get; set; }
+      [Required(ErrorMessage = "Departman je obavezan.")]
+    [Range(1, int.MaxValue, ErrorMessage = "Izaberite validan departman.")]
+    public int DepartmentId { get; set; }
+
+    [Required(ErrorMessage = "Uloga je obavezna.")]
+    [Range(1, int.MaxValue, ErrorMessage = "Izaberite validnu ulogu.")]
+    public int RoleId { get; set; }
     }
 }

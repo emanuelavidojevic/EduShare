@@ -17,7 +17,7 @@ namespace EduShareBackend.Api.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.7")
+                .HasAnnotation("ProductVersion", "9.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
@@ -33,7 +33,7 @@ namespace EduShareBackend.Api.Migrations
                     b.Property<DateTime>("DateComments")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2026, 2, 11, 19, 21, 0, 544, DateTimeKind.Local).AddTicks(2723));
+                        .HasDefaultValue(new DateTime(2026, 3, 6, 17, 28, 27, 506, DateTimeKind.Local).AddTicks(38));
 
                     b.Property<int>("MaterialId")
                         .HasColumnType("int");
@@ -75,23 +75,14 @@ namespace EduShareBackend.Api.Migrations
 
             modelBuilder.Entity("EduShareBackend.Api.Models.Entities.MaterialData", b =>
                 {
-                    b.Property<int>("MaterialDataId")
-                        .ValueGeneratedOnAdd()
+                    b.Property<int>("MaterialId")
                         .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaterialDataId"));
 
                     b.Property<byte[]>("Data")
                         .IsRequired()
                         .HasColumnType("longblob");
 
-                    b.Property<int>("MaterialId")
-                        .HasColumnType("int");
-
-                    b.HasKey("MaterialDataId");
-
-                    b.HasIndex("MaterialId")
-                        .IsUnique();
+                    b.HasKey("MaterialId");
 
                     b.ToTable("MaterialData");
                 });
@@ -102,10 +93,10 @@ namespace EduShareBackend.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaterialId"));
+
                     b.Property<DateTime>("DateCreated")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2026, 2, 11, 19, 21, 0, 553, DateTimeKind.Local).AddTicks(2635));
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("DescriptionMaterial")
                         .IsRequired()
@@ -128,9 +119,57 @@ namespace EduShareBackend.Api.Migrations
 
                     b.HasKey("MaterialId");
 
+                    b.HasIndex("SubjectId");
+
                     b.HasIndex("UserId");
 
                     b.ToTable("Materials");
+                });
+
+            modelBuilder.Entity("EduShareBackend.Api.Models.Entities.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int?>("MaterialId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int?>("SubjectId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("TypeChange")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MaterialId");
+
+                    b.HasIndex("SubjectId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("EduShareBackend.Api.Models.Entities.Ratings", b =>
@@ -186,6 +225,11 @@ namespace EduShareBackend.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("SubjectId"));
+
+                    b.Property<int>("DepartmentId")
+                        .HasColumnType("int");
+
                     b.Property<string>("DescriptionSubject")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -198,7 +242,24 @@ namespace EduShareBackend.Api.Migrations
 
                     b.HasKey("SubjectId");
 
+                    b.HasIndex("DepartmentId");
+
                     b.ToTable("Subjects");
+                });
+
+            modelBuilder.Entity("EduShareBackend.Api.Models.Entities.UserRoles", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("UserRoles");
                 });
 
             modelBuilder.Entity("EduShareBackend.Api.Models.Entities.Users", b =>
@@ -212,7 +273,10 @@ namespace EduShareBackend.Api.Migrations
                     b.Property<DateTime>("DateRegistration")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2026, 2, 11, 19, 21, 0, 565, DateTimeKind.Local).AddTicks(5693));
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<int?>("DepartmentId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -233,24 +297,25 @@ namespace EduShareBackend.Api.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<string>("RefreshToken")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("SecurityStamp")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("TokenCreated")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("TokenExpires")
+                        .HasColumnType("datetime(6)");
+
                     b.HasKey("UserId");
 
+                    b.HasIndex("DepartmentId");
+
                     b.ToTable("Users");
-                });
-
-            modelBuilder.Entity("UserRoles", b =>
-                {
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("RoleId", "UserId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("UserRoles");
                 });
 
             modelBuilder.Entity("EduShareBackend.Api.Models.Entities.Comments", b =>
@@ -287,7 +352,7 @@ namespace EduShareBackend.Api.Migrations
                 {
                     b.HasOne("EduShareBackend.Api.Models.Entities.Subjects", "Subject")
                         .WithMany("Materials")
-                        .HasForeignKey("MaterialId")
+                        .HasForeignKey("SubjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -296,6 +361,27 @@ namespace EduShareBackend.Api.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Subject");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("EduShareBackend.Api.Models.Entities.Notification", b =>
+                {
+                    b.HasOne("EduShareBackend.Api.Models.Entities.Materials", "Material")
+                        .WithMany()
+                        .HasForeignKey("MaterialId");
+
+                    b.HasOne("EduShareBackend.Api.Models.Entities.Subjects", "Subject")
+                        .WithMany()
+                        .HasForeignKey("SubjectId");
+
+                    b.HasOne("EduShareBackend.Api.Models.Entities.Users", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId");
+
+                    b.Navigation("Material");
 
                     b.Navigation("Subject");
 
@@ -325,31 +411,47 @@ namespace EduShareBackend.Api.Migrations
                 {
                     b.HasOne("EduShareBackend.Api.Models.Entities.Departments", "Department")
                         .WithMany("Subjects")
-                        .HasForeignKey("SubjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Department");
                 });
 
-            modelBuilder.Entity("UserRoles", b =>
+            modelBuilder.Entity("EduShareBackend.Api.Models.Entities.UserRoles", b =>
                 {
-                    b.HasOne("EduShareBackend.Api.Models.Entities.Roles", null)
-                        .WithMany()
+                    b.HasOne("EduShareBackend.Api.Models.Entities.Roles", "Role")
+                        .WithMany("UserRoles")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EduShareBackend.Api.Models.Entities.Users", null)
-                        .WithMany()
+                    b.HasOne("EduShareBackend.Api.Models.Entities.Users", "User")
+                        .WithMany("UserRoles")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Role");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("EduShareBackend.Api.Models.Entities.Users", b =>
+                {
+                    b.HasOne("EduShareBackend.Api.Models.Entities.Departments", "Department")
+                        .WithMany("Users")
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Department");
                 });
 
             modelBuilder.Entity("EduShareBackend.Api.Models.Entities.Departments", b =>
                 {
                     b.Navigation("Subjects");
+
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("EduShareBackend.Api.Models.Entities.Materials", b =>
@@ -360,6 +462,11 @@ namespace EduShareBackend.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Rating");
+                });
+
+            modelBuilder.Entity("EduShareBackend.Api.Models.Entities.Roles", b =>
+                {
+                    b.Navigation("UserRoles");
                 });
 
             modelBuilder.Entity("EduShareBackend.Api.Models.Entities.Subjects", b =>
@@ -374,6 +481,8 @@ namespace EduShareBackend.Api.Migrations
                     b.Navigation("Materials");
 
                     b.Navigation("Rating");
+
+                    b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618
         }

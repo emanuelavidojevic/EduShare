@@ -12,7 +12,8 @@ namespace EduShareBackend.Api.Models.Entities
         public string DescriptionSubject{get;set;}
         public virtual Departments Department { get; set; }
         public int DepartmentId { get; set; }
-
+           public virtual Users User{get;set;}
+           public int UserId{get;set;}
 
         public virtual ICollection<Materials> Materials { get; set; } = new List<Materials>();
 

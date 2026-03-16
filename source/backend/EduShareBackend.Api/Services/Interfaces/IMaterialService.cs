@@ -10,10 +10,10 @@ namespace EduShareBackend.Api.Services.Interfaces
 {
 
     public interface IMaterialService{
-    Task<bool>DeleteMaterialAsync(int id);//obrisi materijal
     Task<bool>UploadMaterial(MaterialUploadDTO materialUploadDTO);
     Task<IEnumerable<MaterialDTO>> TableMaterial(MaterialQueryDTO query);
     Task<(byte[] Data, string FileName, string MimeType)?> MaterialDownload(int id);
     Task<object> GetProfileChartData(int userId);
-}
+    Task<bool> DeleteMaterialAsync(int id, int currentUserId, string currentUserRole);
+    }
 }

@@ -88,26 +88,37 @@ namespace EduShareBackend.Api.Services.Implementations
             return new TokenDTO { Expiry = expiry };
         }
 
-        private string CreateJwtToken(Users user, DateTime expiry)
-        {
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim("AspNet.Identity.SecurityStamp", user.SecurityStamp),
-                new Claim("DepartmentId", user.DepartmentId.ToString())
-            };
+     private string CreateJwtToken(Users user, DateTime expiry)
+{
+    var roles = _context.UserRoles
+        .Where(ur => ur.UserId == user.UserId)
+        .Include(ur => ur.Role)
+        .Select(ur => ur.Role.RoleName)
+        .ToList();
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]!));
-            var token = new JwtSecurityToken(
-                issuer: _configuration["JwtSettings:Issuer"],
-                audience: _configuration["JwtSettings:Audience"],
-                claims: claims,
-                expires: expiry,
-                signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature)
-            );
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
+    var claims = new List<Claim>
+    {
+        new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+        new Claim(ClaimTypes.Email, user.Email),
+        new Claim("AspNet.Identity.SecurityStamp", user.SecurityStamp),
+        new Claim("DepartmentId", user.DepartmentId.ToString())
+    };
+
+    foreach (var role in roles)
+    {
+        claims.Add(new Claim(ClaimTypes.Role, role));
+    }
+
+    var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]!));
+    var token = new JwtSecurityToken(
+        issuer: _configuration["JwtSettings:Issuer"],
+        audience: _configuration["JwtSettings:Audience"],
+        claims: claims,
+        expires: expiry,
+        signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature)
+    );
+    return new JwtSecurityTokenHandler().WriteToken(token);
+}
 
         private string CreateSecureRandomString()
         {
@@ -129,32 +140,37 @@ namespace EduShareBackend.Api.Services.Implementations
         }
 
         public async Task<object> GetCurrentUserAsync()
-        {
-            var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim)) return null;
+{
+    var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    if (string.IsNullOrEmpty(userIdClaim)) return null;
 
-            var id = int.Parse(userIdClaim);
-            var user = await _context.Users
-                .Include(u => u.Department)
-                .FirstOrDefaultAsync(u => u.UserId == id);
+    var id = int.Parse(userIdClaim);
+    var user = await _context.Users
+        .Include(u => u.Department)
+        .FirstOrDefaultAsync(u => u.UserId == id);
 
-            if (user == null) return null;
+    if (user == null) return null;
 
-            var roleName = await _context.UserRoles
-                .Where(ur => ur.UserId == id)
-                .Include(ur => ur.Role)
-                .Select(ur => ur.Role.RoleName)
-                .FirstOrDefaultAsync();
+    var roleName = await _context.UserRoles
+        .Where(ur => ur.UserId == id)
+        .Include(ur => ur.Role)
+        .Select(ur => ur.Role.RoleName)
+        .FirstOrDefaultAsync();
 
-            return new 
-            {
-                userId = user.UserId,
-                firstName = user.FirstName,
-                lastName = user.LastName,
-                email = user.Email,
-                role = roleName ?? "Student",
-                departmentName = user.Department?.DepartmentName ?? "Nema smera"
-            };
-        }
+    // LOGIKA: Formatiramo ime pre nego što ga vratimo frontendu
+    string displayFirstName = roleName == "Professor" 
+        ? "prof. " + user.FirstName 
+        : user.FirstName;
+
+    return new 
+    {
+        userId = user.UserId,
+        firstName = displayFirstName, // Sada šalje "prof. Ime" ako je profesor
+        lastName = user.LastName,
+        email = user.Email,
+        role = roleName ?? "Student",
+        departmentName = user.Department?.DepartmentName ?? "Nema smera"
+    };
+}
     }
 }
